@@ -31,10 +31,10 @@ Each plan is a self-contained slice that leaves the app in a working state.
 
 | # | Plan | Outcome |
 |---|---|---|
-| 00 | [Init](00-init.md) | Deployable Next.js + Supabase skeleton on Vercel |
-| 01 | [Match data model](01-match-data-model.md) | `match`, `inning`, `toss` tables + RLS |
-| 02 | [Display shell](02-display-shell.md) | Full-screen layout primitives, TV-safe typography, fluid scaling |
-| 03 | [Match display](03-match-display.md) | Read-only H2H scoreboard rendering a real match row |
+| 00 | [Init](archive/app-foundation/00-init.md) | Deployable Next.js + Supabase skeleton on Vercel |
+| 01 | [Match data model](archive/app-foundation/01-match-data-model.md) | `match`, `inning`, `toss` tables + RLS |
+| 02 | [Display shell](archive/app-foundation/02-display-shell.md) | Full-screen layout primitives, TV-safe typography, fluid scaling |
+| 03 | [Match display](archive/app-foundation/03-match-display.md) | Read-only H2H scoreboard rendering a real match row |
 | 04 | [Match control](04-match-control.md) | Toss entry, undo, inning tracking, redemption/OT state machine |
 | 05 | [Realtime sync](05-realtime-sync.md) | Control surface mutations push to display via Supabase channels |
 | 06 | [Tournament + bracket data model](06-bracket-data-model.md) | `tournament`, `bracket_match` schema for single-elim |
