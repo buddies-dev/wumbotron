@@ -1,3 +1,5 @@
+import { FitText } from "@/components/display/FitText";
+
 type DisplayPageProps = {
   params: Promise<{
     matchId: string;
@@ -10,12 +12,18 @@ export default async function DisplayPage({ params }: DisplayPageProps) {
   console.log("display match id:", matchId);
 
   return (
-    <main className="safe-area flex h-full items-center justify-center">
-      <div>
-        <p className="text-2xl font-semibold uppercase tracking-[0.2em] text-sky-300">
+    <main className="flex h-full items-center justify-center">
+      <div className="w-full text-center">
+        <p className="text-display-label font-semibold uppercase text-sky-300">
           Display
         </p>
-        <h1 className="mt-4 text-7xl font-bold tracking-normal">{matchId}</h1>
+        <FitText
+          className="mt-[2vmin] font-black tracking-normal"
+          minFontSize={72}
+          maxFontSize={280}
+        >
+          {matchId}
+        </FitText>
       </div>
     </main>
   );

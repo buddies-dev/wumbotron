@@ -22,3 +22,32 @@ body {
 @utility safe-area {
   padding: 5vh 5vw;
 }
+
+@utility safe-tv {
+  padding: clamp(2rem, 4vh, 5rem) clamp(2rem, 4vw, 6rem);
+}
+
+@utility text-display {
+  font-size: clamp(8rem, 18vw, 24rem);
+  line-height: 0.86;
+}
+
+@utility text-display-title {
+  font-size: clamp(4rem, 9vw, 12rem);
+  line-height: 0.94;
+}
+
+@utility text-display-label {
+  font-size: clamp(1.1rem, 1.8vw, 2.2rem);
+  letter-spacing: 0.2em;
+  line-height: 1;
+}
+
+@utility text-display-body {
+  font-size: clamp(1.5rem, 2.4vw, 3rem);
+  line-height: 1.15;
+}
+
+@utility score-nums {
+  font-variant-numeric: tabular-nums;
+}
