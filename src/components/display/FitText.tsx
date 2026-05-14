@@ -24,7 +24,7 @@ export function FitText({
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
-  const [fontSize, setFontSize] = useState(maxFontSize);
+  const [fontSize, setFontSize] = useState(minFontSize);
 
   useEffect(() => {
     const container = containerRef.current;

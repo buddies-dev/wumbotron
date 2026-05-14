@@ -234,4 +234,26 @@ describe("deriveMatchState", () => {
       },
     });
   });
+
+  it("derives scores from tosses when a match row is marked complete", () => {
+    const state = deriveMatchState(
+      {
+        first_tosser: 1,
+        status: "complete",
+        winner_slot: 1,
+      },
+      tosses([
+        [1, 3],
+        [2, 2],
+        [1, 3],
+      ]),
+    );
+
+    expect(state).toMatchObject({
+      p1Score: 6,
+      p2Score: 2,
+      isComplete: true,
+      winnerSlot: 1,
+    });
+  });
 });

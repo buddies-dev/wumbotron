@@ -66,8 +66,8 @@ export function deriveMatchState(
 
   let phase: MatchPhase = "regulation";
   let firstToFifteen: PlayerSlot | null = null;
-  let winnerSlot: PlayerSlot | null = match.winner_slot ?? null;
-  let isComplete = match.status === "complete" && winnerSlot !== null;
+  let winnerSlot: PlayerSlot | null = null;
+  let isComplete = false;
   let regulationTossCount = 0;
   let activePhaseTossCount = 0;
 
@@ -144,6 +144,11 @@ export function deriveMatchState(
         activePhaseTossCount = 0;
       }
     }
+  }
+
+  if (match.status === "complete" && match.winner_slot) {
+    isComplete = true;
+    winnerSlot = match.winner_slot;
   }
 
   return {

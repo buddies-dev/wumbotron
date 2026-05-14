@@ -1,4 +1,7 @@
-import { FitText } from "@/components/display/FitText";
+import { notFound } from "next/navigation";
+import { Scoreboard } from "@/components/display/Scoreboard";
+import { loadDisplayMatch } from "@/lib/match/load-display-match";
+import { deriveMatchState } from "@/lib/match/state";
 
 type DisplayPageProps = {
   params: Promise<{
@@ -8,23 +11,21 @@ type DisplayPageProps = {
 
 export default async function DisplayPage({ params }: DisplayPageProps) {
   const { matchId } = await params;
+  const data = await loadDisplayMatch(matchId);
 
-  console.log("display match id:", matchId);
+  if (!data) {
+    notFound();
+  }
+
+  const state = deriveMatchState(data.match, data.tosses);
+  const lastToss = data.tosses.at(-1) ?? null;
 
   return (
-    <main className="flex h-full items-center justify-center">
-      <div className="w-full text-center">
-        <p className="text-display-label font-semibold uppercase text-sky-300">
-          Display
-        </p>
-        <FitText
-          className="mt-[2vmin] font-black tracking-normal"
-          minFontSize={72}
-          maxFontSize={280}
-        >
-          {matchId}
-        </FitText>
-      </div>
-    </main>
+    <Scoreboard
+      match={data.match}
+      state={state}
+      lastToss={lastToss}
+      source={data.source}
+    />
   );
 }

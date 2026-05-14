@@ -15,6 +15,11 @@ export default function Home() {
       label: "Display demo",
       description: "TV-safe layout and typography demo",
     },
+    {
+      href: "/display/complete",
+      label: "Winner demo",
+      description: "Completed match display state",
+    },
   ];
 
   return (
@@ -29,7 +34,7 @@ export default function Home() {
         <p className="mt-6 max-w-2xl text-xl leading-8 text-zinc-300">
           Local route shells are ready for the next build slices.
         </p>
-        <div className="mt-10 grid gap-3 sm:grid-cols-3">
+        <div className="mt-10 grid gap-3 sm:grid-cols-2">
           {routes.map((route) => (
             <a
               key={route.href}
