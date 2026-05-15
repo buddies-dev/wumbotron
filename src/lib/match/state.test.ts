@@ -57,7 +57,7 @@ describe("deriveMatchState", () => {
     expect(state.currentPhase).toBe("regulation");
   });
 
-  it("enters redemption when the first player hits 15", () => {
+  it("waits until the end of an inning before entering redemption", () => {
     const state = deriveMatchState(
       match,
       tosses([
@@ -76,13 +76,13 @@ describe("deriveMatchState", () => {
     expect(state).toMatchObject({
       p1Score: 15,
       p2Score: 12,
-      currentPhase: "redemption",
+      currentPhase: "regulation",
       nextToToss: 2,
       isComplete: false,
     });
   });
 
-  it("completes in redemption when the trailing player misses", () => {
+  it("enters redemption at the end of an inning", () => {
     const state = deriveMatchState(
       match,
       tosses([
@@ -96,6 +96,33 @@ describe("deriveMatchState", () => {
         [2, 3],
         [1, 3],
         [2, 0],
+      ]),
+    );
+
+    expect(state).toMatchObject({
+      p1Score: 15,
+      p2Score: 12,
+      currentPhase: "redemption",
+      nextToToss: 2,
+      isComplete: false,
+    });
+  });
+
+  it("completes in redemption when the trailing player does not reach 15", () => {
+    const state = deriveMatchState(
+      match,
+      tosses([
+        [1, 3],
+        [2, 3],
+        [1, 3],
+        [2, 3],
+        [1, 3],
+        [2, 3],
+        [1, 3],
+        [2, 3],
+        [1, 3],
+        [2, 0],
+        [2, 1],
       ]),
     );
 
@@ -199,7 +226,7 @@ describe("deriveMatchState", () => {
     });
   });
 
-  it("resolves sudden death after an untied pair", () => {
+  it("keeps sudden death going until a stick is unmatched", () => {
     const state = deriveMatchState(
       match,
       tosses([
@@ -226,10 +253,42 @@ describe("deriveMatchState", () => {
 
     expect(state).toMatchObject({
       currentPhase: "sudden_death",
+      isComplete: false,
+      winnerSlot: null,
+    });
+  });
+
+  it("resolves sudden death after an unmatched stick", () => {
+    const state = deriveMatchState(
+      match,
+      tosses([
+        [1, 3],
+        [2, 3],
+        [1, 3],
+        [2, 3],
+        [1, 3],
+        [2, 3],
+        [1, 3],
+        [2, 3],
+        [1, 3],
+        [2, 3],
+        [1, 1],
+        [2, 1],
+        [1, 1],
+        [2, 1],
+        [1, 1],
+        [2, 1],
+        [1, 3],
+        [2, 1],
+      ]),
+    );
+
+    expect(state).toMatchObject({
+      currentPhase: "sudden_death",
       isComplete: true,
       winnerSlot: 1,
       suddenDeath: {
-        p1Score: 2,
+        p1Score: 3,
         p2Score: 1,
       },
     });

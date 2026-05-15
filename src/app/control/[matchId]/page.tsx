@@ -1,29 +1,15 @@
-"use client";
+import { MatchControl } from "@/components/control/MatchControl";
 
-import { useEffect } from "react";
-import { useParams } from "next/navigation";
+type ControlPageProps = {
+  params: Promise<{
+    matchId: string;
+  }>;
+};
 
-export default function ControlPage() {
-  const { matchId } = useParams<{ matchId: string }>();
-
-  useEffect(() => {
-    console.log("control match id:", matchId);
-  }, [matchId]);
+export default async function ControlPage({ params }: ControlPageProps) {
+  const { matchId } = await params;
 
   return (
-    <main className="flex flex-1 items-center justify-center px-8 py-16">
-      <section className="w-full max-w-3xl">
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300">
-          Control
-        </p>
-        <h1 className="text-5xl font-semibold tracking-normal text-white">
-          Match {matchId}
-        </h1>
-        <p className="mt-6 text-xl leading-8 text-zinc-300">
-          This control shell is intentionally empty until the match data model
-          lands.
-        </p>
-      </section>
-    </main>
+    <MatchControl matchId={matchId} />
   );
 }

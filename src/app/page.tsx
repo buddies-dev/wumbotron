@@ -8,7 +8,12 @@ export default function Home() {
     {
       href: "/control/test",
       label: "Control shell",
-      description: "Placeholder match control route",
+      description: "Local toss-entry control route",
+    },
+    {
+      href: "/control/new",
+      label: "New match",
+      description: "Create a local control room",
     },
     {
       href: "/display/shell-demo",

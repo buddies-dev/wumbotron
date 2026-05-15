@@ -35,6 +35,7 @@ export type DerivedMatchState = {
   p2Score: number;
   currentPhase: MatchPhase;
   nextToToss: PlayerSlot | null;
+  firstToFifteen: PlayerSlot | null;
   isComplete: boolean;
   winnerSlot: PlayerSlot | null;
   inningNumber: number;
@@ -84,10 +85,24 @@ export function deriveMatchState(
         toss.value,
       );
 
-      if (regulationScore[toss.player_slot] === TARGET_SCORE) {
+      if (
+        regulationScore[toss.player_slot] === TARGET_SCORE &&
+        firstToFifteen === null
+      ) {
         firstToFifteen = toss.player_slot;
-        phase = "redemption";
-        activePhaseTossCount = 0;
+      }
+
+      if (regulationTossCount % 2 === 0) {
+        if (regulationScore[1] === TARGET_SCORE && regulationScore[2] === TARGET_SCORE) {
+          phase = "overtime";
+          activePhaseTossCount = 0;
+        } else if (
+          regulationScore[1] === TARGET_SCORE ||
+          regulationScore[2] === TARGET_SCORE
+        ) {
+          phase = "redemption";
+          activePhaseTossCount = 0;
+        }
       }
 
       continue;
@@ -103,7 +118,7 @@ export function deriveMatchState(
       if (regulationScore[toss.player_slot] === TARGET_SCORE) {
         phase = "overtime";
         activePhaseTossCount = 0;
-      } else if (isMiss(toss.value)) {
+      } else {
         isComplete = true;
         winnerSlot = firstToFifteen;
       }
@@ -137,9 +152,15 @@ export function deriveMatchState(
 
     const suddenDeath = summarizePhaseTosses(suddenDeathTosses);
     if (suddenDeath.p1Tosses === suddenDeath.p2Tosses) {
-      if (suddenDeath.p1Score !== suddenDeath.p2Score) {
+      const p1Last = suddenDeathTosses[1].at(-1);
+      const p2Last = suddenDeathTosses[2].at(-1);
+
+      if (p1Last === 3 && p2Last !== 3) {
         isComplete = true;
-        winnerSlot = suddenDeath.p1Score > suddenDeath.p2Score ? 1 : 2;
+        winnerSlot = 1;
+      } else if (p2Last === 3 && p1Last !== 3) {
+        isComplete = true;
+        winnerSlot = 2;
       } else {
         activePhaseTossCount = 0;
       }
@@ -166,6 +187,7 @@ export function deriveMatchState(
           suddenDeathTosses,
         }),
     isComplete,
+    firstToFifteen,
     winnerSlot,
     inningNumber: Math.floor(regulationTossCount / 2) + 1,
     tossesInCurrentInning: activePhaseTossCount,
@@ -212,12 +234,18 @@ function getNextToToss({
   if (phase === "overtime") {
     const totalOvertimeTosses =
       overtimeTosses[1].length + overtimeTosses[2].length;
-    return totalOvertimeTosses % 2 === 0 ? firstTosser : secondTosser;
+    const overtimeStarter = firstToFifteen ?? firstTosser;
+    return totalOvertimeTosses % 2 === 0
+      ? overtimeStarter
+      : otherPlayer(overtimeStarter);
   }
 
   const totalSuddenDeathTosses =
     suddenDeathTosses[1].length + suddenDeathTosses[2].length;
-  return totalSuddenDeathTosses % 2 === 0 ? firstTosser : secondTosser;
+  const suddenDeathStarter = firstToFifteen ?? firstTosser;
+  return totalSuddenDeathTosses % 2 === 0
+    ? suddenDeathStarter
+    : otherPlayer(suddenDeathStarter);
 }
 
 function summarizePhaseTosses(tosses: PhaseTosses): PhaseTossSummary {
@@ -231,10 +259,6 @@ function summarizePhaseTosses(tosses: PhaseTosses): PhaseTossSummary {
 
 function otherPlayer(player: PlayerSlot): PlayerSlot {
   return player === 1 ? 2 : 1;
-}
-
-function isMiss(value: TossValue) {
-  return value <= 0;
 }
 
 function sum(values: TossValue[]) {
