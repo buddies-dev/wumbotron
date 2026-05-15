@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ConnectionDot } from "./ConnectionDot";
 import type { ConnectionStatus } from "./ConnectionDot";
 import { FitText } from "./FitText";
@@ -27,12 +30,65 @@ export function Scoreboard({
   connectionStatus = "live",
   source = "supabase",
 }: ScoreboardProps) {
-  const playerNames = {
+  const [showWinner, setShowWinner] = useState(false);
+  const [phaseBanner, setPhaseBanner] = useState<string | null>(null);
+  const previousPhaseRef = useRef<DerivedMatchState["currentPhase"] | null>(null);
+  const playerNames = useMemo(() => ({
     1: match.player1_name,
     2: match.player2_name,
-  };
+  }), [match.player1_name, match.player2_name]);
 
-  if (state.isComplete && state.winnerSlot) {
+  useEffect(() => {
+    const previousPhase = previousPhaseRef.current;
+    previousPhaseRef.current = state.currentPhase;
+
+    if (!previousPhase || previousPhase === state.currentPhase) {
+      return;
+    }
+
+    let nextBanner: string | null = null;
+
+    if (state.currentPhase === "redemption") {
+      const redemptionPlayer = state.nextToToss
+        ? playerNames[state.nextToToss]
+        : "Redemption";
+
+      nextBanner = `Redemption shot - ${redemptionPlayer}`;
+    }
+
+    if (state.currentPhase === "overtime") {
+      nextBanner = "Overtime";
+    }
+
+    if (state.currentPhase === "sudden_death") {
+      nextBanner = "Sudden death";
+    }
+
+    if (!nextBanner) {
+      return;
+    }
+
+    const showTimer = setTimeout(() => setPhaseBanner(nextBanner), 0);
+    const hideTimer = setTimeout(() => setPhaseBanner(null), 3000);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [playerNames, state.currentPhase, state.nextToToss]);
+
+  useEffect(() => {
+    if (!state.isComplete) {
+      const resetTimer = setTimeout(() => setShowWinner(false), 0);
+      return () => clearTimeout(resetTimer);
+    }
+
+    const timer = setTimeout(() => setShowWinner(true), 2000);
+
+    return () => clearTimeout(timer);
+  }, [state.isComplete, state.winnerSlot]);
+
+  if (showWinner && state.winnerSlot) {
     return (
       <WinnerView
         match={match}
@@ -44,6 +100,11 @@ export function Scoreboard({
 
   return (
     <main className="relative flex h-full flex-col justify-between">
+      <BroadcastOverlays
+        lastToss={lastToss}
+        playerNames={playerNames}
+        phaseBanner={phaseBanner}
+      />
       <header className="flex items-start justify-between gap-[4vw]">
         <div className="text-display-label font-semibold uppercase text-zinc-300">
           Inning <span className="score-nums">{state.inningNumber}</span>
@@ -95,6 +156,64 @@ export function Scoreboard({
   );
 }
 
+function BroadcastOverlays({
+  lastToss,
+  playerNames,
+  phaseBanner,
+}: {
+  lastToss: DisplayToss | null;
+  playerNames: Record<PlayerSlot, string>;
+  phaseBanner: string | null;
+}) {
+  const [stickToss, setStickToss] = useState<DisplayToss | null>(null);
+  const hasMountedRef = useRef(false);
+
+  useEffect(() => {
+    if (!lastToss) {
+      return;
+    }
+
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    if (lastToss.value !== 3) {
+      return;
+    }
+
+    const showTimer = setTimeout(() => setStickToss(lastToss), 0);
+    const hideTimer = setTimeout(() => setStickToss(null), 1500);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [lastToss]);
+
+  return (
+    <>
+      {phaseBanner ? (
+        <div className="broadcast-in pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 rounded-md border border-amber-300/60 bg-amber-300 px-[2vmin] py-[1vmin] text-display-label font-black uppercase text-black shadow-[0_0_3rem_rgba(252,211,77,0.45)]">
+          {phaseBanner}
+        </div>
+      ) : null}
+      {stickToss ? (
+        <div className="broadcast-in pointer-events-none absolute inset-x-0 top-[22%] z-20 mx-auto w-fit text-center">
+          <div className="rounded-md border border-emerald-200/70 bg-emerald-300 px-[4vmin] py-[2vmin] text-black shadow-[0_0_4rem_rgba(110,231,183,0.45)]">
+            <p className="text-[clamp(4rem,10vw,13rem)] font-black uppercase leading-none">
+              Stick!
+            </p>
+            <p className="mt-[1vmin] text-display-label font-black uppercase">
+              {playerNames[stickToss.player_slot]}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function PlayerPanel({
   align,
   name,
@@ -127,7 +246,9 @@ function PlayerPanel({
         {name}
       </FitText>
       <div className="score-nums mt-[2vmin] text-[clamp(9rem,20vw,26rem)] font-black leading-[0.8]">
-        {score}
+        <span key={score} className="score-pop">
+          {score}
+        </span>
       </div>
       <div
         className={[
@@ -157,7 +278,8 @@ function WinnerView({
   const winnerScore = state.winnerSlot === 1 ? state.p1Score : state.p2Score;
 
   return (
-    <main className="flex h-full flex-col items-center justify-center text-center">
+    <main className="winner-rise relative flex h-full flex-col items-center justify-center overflow-hidden text-center">
+      <div className="champion-glow absolute inset-x-[10%] top-1/2 h-[1vmin] rounded-full bg-sky-300/70 blur-xl" />
       <p className="text-display-label font-semibold uppercase text-sky-300">
         Winner
       </p>

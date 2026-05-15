@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { ConnectionDot, type ConnectionStatus } from "./ConnectionDot";
 import { FitText } from "./FitText";
 import type {
@@ -24,6 +25,7 @@ export function Bracket({
 }: BracketProps) {
   const playerById = new Map(data.players.map((player) => [player.id, player]));
   const rounds = groupByRound(data.matches);
+  const accentColor = normalizeAccent(data.tournament.accent_color);
   const champion = data.championPlayerId
     ? playerById.get(data.championPlayerId) ?? null
     : null;
@@ -34,12 +36,16 @@ export function Bracket({
         data={data}
         champion={champion}
         connectionStatus={connectionStatus}
+        accentColor={accentColor}
       />
     );
   }
 
   return (
-    <main className="flex h-full min-h-0 flex-col gap-[3vmin]">
+    <main
+      className="flex h-full min-h-0 flex-col gap-[3vmin]"
+      style={accentStyle(accentColor)}
+    >
       <BracketHeader data={data} connectionStatus={connectionStatus} />
       <section
         className="grid min-h-0 flex-1 gap-[2.4vw]"
@@ -60,6 +66,7 @@ export function Bracket({
                   match={match}
                   players={playerById}
                   isActive={match.id === data.activeBracketMatchId}
+                  hasConnector={index < rounds.length - 1}
                 />
               ))}
             </div>
@@ -74,26 +81,34 @@ function ChampionView({
   data,
   champion,
   connectionStatus,
+  accentColor,
 }: {
   data: DisplayTournamentData;
   champion: DisplayTournamentPlayer;
   connectionStatus: ConnectionStatus;
+  accentColor: string;
 }) {
   return (
-    <main className="grid h-full min-h-0 grid-cols-[1.2fr_0.8fr] gap-[4vw]">
+    <main
+      className="grid h-full min-h-0 grid-cols-[1.2fr_0.8fr] gap-[4vw]"
+      style={accentStyle(accentColor)}
+    >
       <section className="flex min-w-0 flex-col justify-center">
         <div className="flex items-center justify-between gap-[2vw]">
-          <p className="text-display-label font-semibold uppercase text-amber-300">
+          <p className="text-display-label font-semibold uppercase text-[var(--accent)]">
             Champion
           </p>
           <ConnectionDot status={connectionStatus} />
         </div>
-        <FitText
-          className="mt-[3vmin] h-[18vmin] w-full font-black"
-          maxFontSize={210}
-        >
-          {champion.name}
-        </FitText>
+        <div className="winner-rise relative mt-[3vmin]">
+          <div className="champion-glow absolute inset-x-0 top-1/2 h-[1.2vmin] rounded-full bg-[var(--accent)] blur-xl" />
+          <FitText
+            className="relative h-[18vmin] w-full font-black"
+            maxFontSize={210}
+          >
+            {champion.name}
+          </FitText>
+        </div>
         <p className="mt-[3vmin] text-display-body text-zinc-300">
           {data.tournament.name}
         </p>
@@ -119,7 +134,7 @@ function BracketHeader({
   return (
     <header className="flex items-start justify-between gap-[4vw]">
       <div className="min-w-0">
-        <p className="text-display-label font-semibold uppercase text-sky-300">
+        <p className="text-display-label font-semibold uppercase text-[var(--accent)]">
           Tournament
           {data.source === "demo" ? (
             <span className="ml-[1vmin] text-zinc-500">demo</span>
@@ -146,10 +161,12 @@ function BracketCell({
   match,
   players,
   isActive,
+  hasConnector,
 }: {
   match: DisplayBracketMatch;
   players: Map<string, DisplayTournamentPlayer>;
   isActive: boolean;
+  hasConnector: boolean;
 }) {
   const player1 = match.player1_id ? players.get(match.player1_id) : null;
   const player2 = match.player2_id ? players.get(match.player2_id) : null;
@@ -160,16 +177,24 @@ function BracketCell({
       className={[
         "relative min-h-[13vmin] rounded-md border bg-zinc-950/80 p-[1.4vmin] shadow-2xl",
         isActive
-          ? "border-sky-300 shadow-[0_0_3rem_rgba(125,211,252,0.28)]"
+          ? "border-[var(--accent)] shadow-[0_0_3rem_var(--accent-glow)]"
           : "border-white/10",
       ].join(" ")}
     >
+      {hasConnector ? (
+        <div
+          className={[
+            "pointer-events-none absolute left-full top-1/2 hidden h-px w-[1.8vw] bg-white/25 md:block",
+            match.status === "complete" || isActive ? "bg-[var(--accent)]" : "",
+          ].join(" ")}
+        />
+      ) : null}
       <div className="mb-[1vmin] flex items-center justify-between gap-[1vw]">
         <span
           className={[
             "rounded-sm px-[0.7vmin] py-[0.35vmin] text-[clamp(0.7rem,0.9vw,1rem)] font-bold uppercase tracking-[0.14em]",
             match.status === "live"
-              ? "bg-sky-300 text-black"
+              ? "bg-[var(--accent)] text-black"
               : "bg-white/10 text-zinc-300",
           ].join(" ")}
         >
@@ -257,4 +282,15 @@ function roundName(round: number, totalRounds: number) {
 
 function matchLabel(match: DisplayBracketMatch) {
   return `R${match.round}.${match.position + 1}`;
+}
+
+function normalizeAccent(value: string | null) {
+  return value && /^#[0-9a-f]{6}$/i.test(value) ? value : "#7dd3fc";
+}
+
+function accentStyle(accentColor: string): CSSProperties {
+  return {
+    "--accent": accentColor,
+    "--accent-glow": `${accentColor}55`,
+  } as CSSProperties;
 }

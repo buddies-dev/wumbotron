@@ -183,6 +183,28 @@ export function TournamentControl({ initialData }: TournamentControlProps) {
     }));
   }
 
+  async function updateAccentColor(accentColor: string) {
+    if (!supabase) {
+      setMessage("Supabase environment variables are required.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("tournament")
+      .update({ accent_color: accentColor })
+      .eq("id", data.tournament.id);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setData((current) => ({
+      ...current,
+      tournament: { ...current.tournament, accent_color: accentColor },
+    }));
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-5 sm:px-6">
       <header className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
@@ -199,6 +221,16 @@ export function TournamentControl({ initialData }: TournamentControlProps) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <label className="flex min-h-11 items-center gap-2 rounded-md border border-white/15 px-3 text-sm font-semibold text-zinc-300">
+              Accent
+              <input
+                type="color"
+                value={data.tournament.accent_color ?? "#7dd3fc"}
+                onChange={(event) => updateAccentColor(event.target.value)}
+                className="size-7 rounded-sm border-0 bg-transparent p-0"
+                aria-label="Tournament accent color"
+              />
+            </label>
             <Link
               href={`/display/tournament/${data.tournament.id}`}
               className="min-h-11 rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-white"
