@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
-import { Scoreboard } from "@/components/display/Scoreboard";
+import { LiveMatch } from "@/components/display/LiveMatch";
 import { loadDisplayMatch } from "@/lib/match/load-display-match";
-import { deriveMatchState } from "@/lib/match/state";
 
 type DisplayPageProps = {
   params: Promise<{
@@ -17,15 +16,5 @@ export default async function DisplayPage({ params }: DisplayPageProps) {
     notFound();
   }
 
-  const state = deriveMatchState(data.match, data.tosses);
-  const lastToss = data.tosses.at(-1) ?? null;
-
-  return (
-    <Scoreboard
-      match={data.match}
-      state={state}
-      lastToss={lastToss}
-      source={data.source}
-    />
-  );
+  return <LiveMatch initialData={data} />;
 }

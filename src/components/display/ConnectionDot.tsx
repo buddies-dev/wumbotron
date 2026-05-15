@@ -1,4 +1,4 @@
-type ConnectionStatus = "live" | "reconnecting" | "offline";
+export type ConnectionStatus = "live" | "reconnecting" | "offline";
 
 type ConnectionDotProps = {
   status: ConnectionStatus;

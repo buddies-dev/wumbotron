@@ -1,4 +1,5 @@
 import { ConnectionDot } from "./ConnectionDot";
+import type { ConnectionStatus } from "./ConnectionDot";
 import { FitText } from "./FitText";
 import { formatTossValue, TOSS_LABELS } from "@/lib/match/constants";
 import type { DisplayMatch, DisplayToss } from "@/lib/match/demo";
@@ -8,6 +9,7 @@ type ScoreboardProps = {
   match: DisplayMatch;
   state: DerivedMatchState;
   lastToss: DisplayToss | null;
+  connectionStatus?: ConnectionStatus;
   source?: "supabase" | "demo";
 };
 
@@ -22,6 +24,7 @@ export function Scoreboard({
   match,
   state,
   lastToss,
+  connectionStatus = "live",
   source = "supabase",
 }: ScoreboardProps) {
   const playerNames = {
@@ -52,7 +55,7 @@ export function Scoreboard({
             <span className="ml-[1vmin] text-zinc-500">demo</span>
           ) : null}
         </div>
-        <ConnectionDot status="live" />
+        <ConnectionDot status={connectionStatus} />
       </header>
 
       <section className="grid min-h-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-[3vw] py-[4vmin]">
@@ -158,7 +161,10 @@ function WinnerView({
       <p className="text-display-label font-semibold uppercase text-sky-300">
         Winner
       </p>
-      <FitText className="mt-[2vmin] h-[14vmin] w-full font-black" maxFontSize={180}>
+      <FitText
+        className="mt-[2vmin] h-[14vmin] w-full font-black"
+        maxFontSize={180}
+      >
         {winnerName}
       </FitText>
       <div className="score-nums mt-[4vmin] text-[clamp(5rem,10vw,12rem)] font-black leading-none">
