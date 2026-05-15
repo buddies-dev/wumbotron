@@ -25,6 +25,11 @@ export default function Home() {
       label: "Winner demo",
       description: "Completed match display state",
     },
+    {
+      href: "/display/tournament/demo",
+      label: "Tournament display",
+      description: "Live bracket display demo",
+    },
   ];
 
   return (
