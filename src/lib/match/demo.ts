@@ -7,6 +7,7 @@ export type DisplayMatch = {
   first_tosser: PlayerSlot;
   status: "active" | "complete";
   winner_slot: PlayerSlot | null;
+  bracket_match_id?: string | null;
 };
 
 export type DisplayInning = {

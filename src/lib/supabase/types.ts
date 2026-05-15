@@ -119,24 +119,38 @@ export type Database = {
           id: string;
           name: string;
           format: "single_elim";
-          status: "active" | "complete";
+          status: "active" | "complete" | "abandoned";
           created_at: string;
+          featured_match_id: string | null;
+          accent_color: string | null;
         };
         Insert: {
           id?: string;
           name: string;
           format?: "single_elim";
-          status?: "active" | "complete";
+          status?: "active" | "complete" | "abandoned";
           created_at?: string;
+          featured_match_id?: string | null;
+          accent_color?: string | null;
         };
         Update: {
           id?: string;
           name?: string;
           format?: "single_elim";
-          status?: "active" | "complete";
+          status?: "active" | "complete" | "abandoned";
           created_at?: string;
+          featured_match_id?: string | null;
+          accent_color?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "tournament_featured_match_id_fkey";
+            columns: ["featured_match_id"];
+            isOneToOne: false;
+            referencedRelation: "match";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       player: {
         Row: {

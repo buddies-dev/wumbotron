@@ -17,8 +17,10 @@ type TossRow = Database["public"]["Tables"]["toss"]["Row"];
 export type DisplayTournament = {
   id: string;
   name: string;
-  status: "active" | "complete";
+  status: "active" | "complete" | "abandoned";
   format: "single_elim";
+  featured_match_id: string | null;
+  accent_color: string | null;
 };
 
 export type DisplayTournamentPlayer = {
@@ -232,6 +234,8 @@ function shapeTournament({
       name: tournament.name,
       status: tournament.status,
       format: tournament.format,
+      featured_match_id: tournament.featured_match_id,
+      accent_color: tournament.accent_color,
     },
     players: players.map((player) => ({
       id: player.id,
@@ -240,7 +244,10 @@ function shapeTournament({
     })),
     matches: shapedMatches,
     championPlayerId,
-    activeBracketMatchId: getActiveBracketMatchId(shapedMatches),
+    activeBracketMatchId: getActiveBracketMatchId(
+      shapedMatches,
+      tournament.featured_match_id,
+    ),
     source,
   };
 }
@@ -260,7 +267,18 @@ function getBracketMatchStatus(
   return match.status === "complete" ? "complete" : "live";
 }
 
-function getActiveBracketMatchId(matches: DisplayBracketMatch[]) {
+function getActiveBracketMatchId(
+  matches: DisplayBracketMatch[],
+  featuredMatchId: string | null,
+) {
+  const featured = featuredMatchId
+    ? matches.find((match) => match.match_id === featuredMatchId)
+    : null;
+
+  if (featured) {
+    return featured.id;
+  }
+
   const liveMatches = matches.filter((match) => match.status === "live");
 
   if (liveMatches.length === 0) {
@@ -291,6 +309,7 @@ function normalizeMatch(match: MatchRow): DisplayMatch {
     first_tosser: match.first_tosser,
     status: match.status,
     winner_slot: match.winner_slot,
+    bracket_match_id: match.bracket_match_id,
   };
 }
 
@@ -328,6 +347,8 @@ const demoTournament: DisplayTournamentData = shapeTournament({
     format: "single_elim",
     status: "active",
     created_at: "2026-05-14T18:00:00.000Z",
+    featured_match_id: "m-5",
+    accent_color: null,
   },
   players: [
     demoPlayer("demo-player-1", "Ada", 1),

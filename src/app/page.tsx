@@ -16,6 +16,11 @@ export default function Home() {
       description: "Create a local control room",
     },
     {
+      href: "/control/tournament/new",
+      label: "New tournament",
+      description: "Create and run a single-elim bracket",
+    },
+    {
       href: "/display/shell-demo",
       label: "Display demo",
       description: "TV-safe layout and typography demo",

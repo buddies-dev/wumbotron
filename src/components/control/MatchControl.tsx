@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   formatTossOption,
@@ -18,17 +19,28 @@ import {
   type TossValue,
 } from "@/lib/match/state";
 import { TOSS_LABELS } from "@/lib/match/constants";
+import { createClient } from "@/lib/supabase/client";
+import { advanceCompletedMatch } from "@/lib/tournament/advance";
 
 type MatchControlProps = {
   matchId: string;
+  initialData: DisplayMatchData | null;
 };
 
 const STORAGE_PREFIX = "wumbotron:control:";
 
-export function MatchControl({ matchId }: MatchControlProps) {
+export function MatchControl({ matchId, initialData }: MatchControlProps) {
+  const canUseSupabase = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
   const [data, setData] = useState<DisplayMatchData>(() => {
+    if (initialData?.source === "supabase") {
+      return initialData;
+    }
+
     if (typeof window === "undefined") {
-      return createInitialLocalMatch(matchId);
+      return initialData ?? createInitialLocalMatch(matchId);
     }
 
     const stored = window.localStorage.getItem(`${STORAGE_PREFIX}${matchId}`);
@@ -37,11 +49,50 @@ export function MatchControl({ matchId }: MatchControlProps) {
       return JSON.parse(stored) as DisplayMatchData;
     }
 
-    return createInitialLocalMatch(matchId);
+    return initialData ?? createInitialLocalMatch(matchId);
   });
+  const [tournamentId, setTournamentId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const supabase = useMemo(
+    () => (canUseSupabase ? createClient() : null),
+    [canUseSupabase],
+  );
+
+  const refetchMatch = useMemo(
+    () => async () => {
+      const response = await fetch(`/api/matches/${matchId}/display`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const nextData = (await response.json()) as DisplayMatchData;
+      setData(nextData);
+      return nextData;
+    },
+    [matchId],
+  );
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!supabase || !data.match.bracket_match_id) {
+      return;
+    }
+
+    supabase
+      .from("bracket_match")
+      .select("tournament_id")
+      .eq("id", data.match.bracket_match_id)
+      .maybeSingle()
+      .then(({ data: bracketMatch }) => {
+        setTournamentId(bracketMatch?.tournament_id ?? null);
+      });
+  }, [data.match.bracket_match_id, supabase]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || data.source === "supabase") {
       return;
     }
 
@@ -62,8 +113,13 @@ export function MatchControl({ matchId }: MatchControlProps) {
   const action = getNextAction(state, playerNames);
   const lastToss = data.tosses.at(-1) ?? null;
 
-  function recordToss(value: TossValue) {
+  async function recordToss(value: TossValue) {
     if (state.isComplete || !action.player) {
+      return;
+    }
+
+    if (data.source === "supabase") {
+      await recordRemoteToss(value);
       return;
     }
 
@@ -106,7 +162,164 @@ export function MatchControl({ matchId }: MatchControlProps) {
     });
   }
 
-  function undoLastToss() {
+  async function recordRemoteToss(value: TossValue) {
+    if (!supabase || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const currentState = deriveMatchState(data.match, data.tosses);
+      const player = currentState.nextToToss;
+
+      if (!player || currentState.isComplete) {
+        return;
+      }
+
+      const inning = await ensureRemoteInning(
+        currentState.inningNumber,
+        currentState.currentPhase,
+      );
+      const tossesInInning = data.tosses.filter(
+        (toss) => toss.inning_number === inning.number,
+      );
+      const nextToss: Omit<DisplayToss, "inning_number"> = {
+        id: crypto.randomUUID(),
+        inning_id: inning.id,
+        player_slot: player,
+        value,
+        order_in_inning: tossesInInning.length + 1,
+        created_at: new Date().toISOString(),
+      };
+      const { error: tossError } = await supabase.from("toss").insert(nextToss);
+
+      if (tossError) {
+        throw new Error(tossError.message);
+      }
+
+      const nextState = deriveMatchState(data.match, [
+        ...data.tosses,
+        { ...nextToss, inning_number: inning.number },
+      ]);
+
+      if (nextState.isComplete) {
+        const { error: matchError } = await supabase
+          .from("match")
+          .update({
+            status: "complete",
+            winner_slot: nextState.winnerSlot,
+          })
+          .eq("id", data.match.id);
+
+        if (matchError) {
+          throw new Error(matchError.message);
+        }
+
+        await advanceCompletedMatch(supabase, data.match.id);
+      }
+
+      await refetchMatch();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Toss failed.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function ensureRemoteInning(
+    inningNumber: number,
+    phase: DisplayInning["phase"],
+  ) {
+    if (!supabase) {
+      throw new Error("Supabase is not configured.");
+    }
+
+    const existing = data.innings.find((inning) => inning.number === inningNumber);
+
+    if (existing) {
+      return existing;
+    }
+
+    const { data: inning, error: selectError } = await supabase
+      .from("inning")
+      .select("*")
+      .eq("match_id", data.match.id)
+      .eq("number", inningNumber)
+      .maybeSingle();
+
+    if (selectError) {
+      throw new Error(selectError.message);
+    }
+
+    if (inning) {
+      return {
+        id: inning.id,
+        match_id: inning.match_id,
+        number: inning.number,
+        phase: inning.phase,
+      };
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("inning")
+      .insert({
+        id: crypto.randomUUID(),
+        match_id: data.match.id,
+        number: inningNumber,
+        phase,
+      })
+      .select("*")
+      .single();
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    return {
+      id: inserted.id,
+      match_id: inserted.match_id,
+      number: inserted.number,
+      phase: inserted.phase,
+    };
+  }
+
+  async function undoLastToss() {
+    if (data.source === "supabase") {
+      if (!supabase || data.match.status === "complete") {
+        return;
+      }
+
+      const lastRemoteToss = data.tosses.at(-1);
+
+      if (!lastRemoteToss) {
+        return;
+      }
+
+      setIsSaving(true);
+      setError(null);
+
+      try {
+        const { error: deleteError } = await supabase
+          .from("toss")
+          .delete()
+          .eq("id", lastRemoteToss.id);
+
+        if (deleteError) {
+          throw new Error(deleteError.message);
+        }
+
+        await refetchMatch();
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Undo failed.");
+      } finally {
+        setIsSaving(false);
+      }
+
+      return;
+    }
+
     setData((current) => ({
       ...current,
       match: {
@@ -137,7 +350,7 @@ export function MatchControl({ matchId }: MatchControlProps) {
             </h1>
           </div>
           <span className="rounded-md bg-zinc-800 px-2 py-1 text-xs uppercase tracking-[0.14em] text-zinc-300">
-            local
+            {data.source === "supabase" ? "live" : "local"}
           </span>
         </div>
         <div className="score-nums mt-5 grid grid-cols-2 gap-3 text-center">
@@ -154,6 +367,21 @@ export function MatchControl({ matchId }: MatchControlProps) {
         </div>
       </header>
 
+      {tournamentId ? (
+        <Link
+          href={`/control/tournament/${tournamentId}`}
+          className="rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm font-semibold text-emerald-200"
+        >
+          Back to tournament
+        </Link>
+      ) : null}
+
+      {error ? (
+        <p className="rounded-md border border-red-400/40 bg-red-400/10 p-3 text-sm text-red-200">
+          {error}
+        </p>
+      ) : null}
+
       <section className="rounded-lg border border-emerald-300/30 bg-emerald-300/10 p-4">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-300">
           {state.currentPhase.replace("_", " ")} · inning {state.inningNumber}
@@ -167,7 +395,7 @@ export function MatchControl({ matchId }: MatchControlProps) {
           <button
             key={option.value}
             type="button"
-            disabled={state.isComplete}
+            disabled={state.isComplete || isSaving}
             onClick={() => recordToss(option.value)}
             className={[
               "min-h-24 rounded-lg p-4 text-left text-xl font-black transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40",
@@ -196,7 +424,11 @@ export function MatchControl({ matchId }: MatchControlProps) {
           <button
             type="button"
             onClick={undoLastToss}
-            disabled={data.tosses.length === 0}
+            disabled={
+              data.tosses.length === 0 ||
+              isSaving ||
+              (data.source === "supabase" && data.match.status === "complete")
+            }
             className="min-h-12 rounded-md border border-white/15 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
             Undo

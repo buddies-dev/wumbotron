@@ -105,6 +105,7 @@ function normalizeMatch(match: MatchRow): DisplayMatch {
     first_tosser: match.first_tosser,
     status: match.status,
     winner_slot: match.winner_slot,
+    bracket_match_id: match.bracket_match_id,
   };
 }
 

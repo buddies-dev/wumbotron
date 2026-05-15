@@ -1,4 +1,5 @@
 import { MatchControl } from "@/components/control/MatchControl";
+import { loadDisplayMatch } from "@/lib/match/load-display-match";
 
 type ControlPageProps = {
   params: Promise<{
@@ -8,8 +9,9 @@ type ControlPageProps = {
 
 export default async function ControlPage({ params }: ControlPageProps) {
   const { matchId } = await params;
+  const data = await loadDisplayMatch(matchId);
 
   return (
-    <MatchControl matchId={matchId} />
+    <MatchControl matchId={matchId} initialData={data} />
   );
 }
