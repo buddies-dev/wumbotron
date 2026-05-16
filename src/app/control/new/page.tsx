@@ -2,49 +2,68 @@
 
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
-import type { DisplayMatchData } from "@/lib/match/demo";
-
-const STORAGE_PREFIX = "wumbotron:control:";
+import { createClient } from "@/lib/supabase/client";
 
 export default function NewMatchPage() {
   const router = useRouter();
   const [player1Name, setPlayer1Name] = useState("Player One");
   const [player2Name, setPlayer2Name] = useState("Player Two");
   const [firstTosser, setFirstTosser] = useState<1 | 2>(1);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const canUseSupabase = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
 
-  function createLocalMatch(event: FormEvent<HTMLFormElement>) {
+  async function createMatch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
 
-    const id = `local-${crypto.randomUUID().slice(0, 8)}`;
-    const data: DisplayMatchData = {
-      match: {
-        id,
-        player1_name: player1Name.trim() || "Player One",
-        player2_name: player2Name.trim() || "Player Two",
-        first_tosser: firstTosser,
-        status: "active",
-        winner_slot: null,
-      },
-      innings: [
-        {
-          id: crypto.randomUUID(),
-          match_id: id,
-          number: 1,
-          phase: "regulation",
-        },
-      ],
-      tosses: [],
-      source: "demo",
-    };
+    if (!canUseSupabase) {
+      setError("Supabase environment variables are required to create matches.");
+      return;
+    }
 
-    window.localStorage.setItem(`${STORAGE_PREFIX}${id}`, JSON.stringify(data));
-    router.push(`/control/${id}`);
+    setIsSubmitting(true);
+
+    try {
+      const supabase = createClient();
+      const { data: match, error: matchError } = await supabase
+        .from("match")
+        .insert({
+          player1_name: player1Name.trim() || "Player One",
+          player2_name: player2Name.trim() || "Player Two",
+          first_tosser: firstTosser,
+        })
+        .select("id")
+        .single();
+
+      if (matchError) {
+        throw new Error(matchError.message);
+      }
+
+      const { error: inningError } = await supabase.from("inning").insert({
+        match_id: match.id,
+        number: 1,
+        phase: "regulation",
+      });
+
+      if (inningError) {
+        throw new Error(inningError.message);
+      }
+
+      router.push(`/control/${match.id}`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Match failed.");
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 items-center px-4 py-8">
       <form
-        onSubmit={createLocalMatch}
+        onSubmit={createMatch}
         className="w-full rounded-lg border border-white/10 bg-white/[0.04] p-5"
       >
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300">
@@ -93,11 +112,18 @@ export default function NewMatchPage() {
           </div>
         </fieldset>
 
+        {error ? (
+          <p className="mt-4 rounded-md border border-red-400/40 bg-red-400/10 p-3 text-sm text-red-200">
+            {error}
+          </p>
+        ) : null}
+
         <button
           type="submit"
-          className="mt-6 min-h-14 w-full rounded-md bg-emerald-300 px-5 text-lg font-black text-black"
+          disabled={isSubmitting}
+          className="mt-6 min-h-14 w-full rounded-md bg-emerald-300 px-5 text-lg font-black text-black disabled:cursor-wait disabled:opacity-60"
         >
-          Start match
+          {isSubmitting ? "Creating..." : "Start match"}
         </button>
       </form>
     </main>

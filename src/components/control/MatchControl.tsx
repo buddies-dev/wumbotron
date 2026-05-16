@@ -21,13 +21,12 @@ import {
 import { TOSS_LABELS } from "@/lib/match/constants";
 import { createClient } from "@/lib/supabase/client";
 import { advanceCompletedMatch } from "@/lib/tournament/advance";
+import { DisplayLinkStrip } from "./DisplayLinkStrip";
 
 type MatchControlProps = {
   matchId: string;
   initialData: DisplayMatchData | null;
 };
-
-const STORAGE_PREFIX = "wumbotron:control:";
 
 export function MatchControl({ matchId, initialData }: MatchControlProps) {
   const canUseSupabase = Boolean(
@@ -41,12 +40,6 @@ export function MatchControl({ matchId, initialData }: MatchControlProps) {
 
     if (typeof window === "undefined") {
       return initialData ?? createInitialLocalMatch(matchId);
-    }
-
-    const stored = window.localStorage.getItem(`${STORAGE_PREFIX}${matchId}`);
-
-    if (stored) {
-      return JSON.parse(stored) as DisplayMatchData;
     }
 
     return initialData ?? createInitialLocalMatch(matchId);
@@ -90,14 +83,6 @@ export function MatchControl({ matchId, initialData }: MatchControlProps) {
         setTournamentId(bracketMatch?.tournament_id ?? null);
       });
   }, [data.match.bracket_match_id, supabase]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || data.source === "supabase") {
-      return;
-    }
-
-    window.localStorage.setItem(`${STORAGE_PREFIX}${matchId}`, JSON.stringify(data));
-  }, [data, matchId]);
 
   const state = useMemo(
     () => deriveMatchState(data.match, data.tosses),
@@ -334,7 +319,6 @@ export function MatchControl({ matchId, initialData }: MatchControlProps) {
   function resetMatch() {
     const next = createInitialLocalMatch(matchId);
     setData(next);
-    window.localStorage.setItem(`${STORAGE_PREFIX}${matchId}`, JSON.stringify(next));
   }
 
   return (
@@ -366,6 +350,8 @@ export function MatchControl({ matchId, initialData }: MatchControlProps) {
           />
         </div>
       </header>
+
+      <DisplayLinkStrip path={`/display/${data.match.id}`} />
 
       {tournamentId ? (
         <Link
@@ -448,13 +434,15 @@ export function MatchControl({ matchId, initialData }: MatchControlProps) {
         </ol>
       </section>
 
-      <button
-        type="button"
-        onClick={resetMatch}
-        className="min-h-12 rounded-md border border-red-400/40 text-sm font-semibold text-red-200"
-      >
-        Reset local match
-      </button>
+      {data.source === "demo" ? (
+        <button
+          type="button"
+          onClick={resetMatch}
+          className="min-h-12 rounded-md border border-red-400/40 text-sm font-semibold text-red-200"
+        >
+          Reset demo match
+        </button>
+      ) : null}
     </main>
   );
 }

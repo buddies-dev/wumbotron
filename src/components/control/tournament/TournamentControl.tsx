@@ -9,6 +9,7 @@ import type {
   DisplayTournamentPlayer,
 } from "@/lib/bracket/load-display-tournament";
 import { createClient } from "@/lib/supabase/client";
+import { DisplayLinkStrip } from "@/components/control/DisplayLinkStrip";
 
 type TournamentControlProps = {
   initialData: DisplayTournamentData;
@@ -231,12 +232,6 @@ export function TournamentControl({ initialData }: TournamentControlProps) {
                 aria-label="Tournament accent color"
               />
             </label>
-            <Link
-              href={`/display/tournament/${data.tournament.id}`}
-              className="min-h-11 rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-white"
-            >
-              Display
-            </Link>
             <button
               type="button"
               onClick={abandonTournament}
@@ -254,6 +249,8 @@ export function TournamentControl({ initialData }: TournamentControlProps) {
           {message}
         </p>
       ) : null}
+
+      <DisplayLinkStrip path={`/display/tournament/${data.tournament.id}`} />
 
       <section className="grid gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
         <aside className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
