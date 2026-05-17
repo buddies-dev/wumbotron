@@ -19,6 +19,10 @@ body {
   font-size: 18px;
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 @utility safe-area {
   padding: 5vh 5vw;
 }
