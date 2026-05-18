@@ -99,8 +99,8 @@ function RecentMatches({ matches }: { matches: RecentMatch[] }) {
               <span className="block truncate text-lg font-bold text-white">
                 {match.player1Name} vs {match.player2Name}
               </span>
-              <span className="mt-2 flex items-center justify-between gap-3 text-sm uppercase tracking-[0.14em] text-zinc-500">
-                <span>{match.status}</span>
+              <span className="mt-3 flex items-center justify-between gap-3 text-sm text-zinc-500">
+                <StatusBadge status={match.status} />
                 <span className="score-nums">
                   {formatDate(match.createdAt)}
                 </span>
@@ -136,8 +136,8 @@ function RecentTournaments({
               <span className="block truncate text-lg font-bold text-white">
                 {tournament.name}
               </span>
-              <span className="mt-2 flex items-center justify-between gap-3 text-sm uppercase tracking-[0.14em] text-zinc-500">
-                <span>{tournament.status}</span>
+              <span className="mt-3 flex items-center justify-between gap-3 text-sm text-zinc-500">
+                <StatusBadge status={tournament.status} />
                 <span className="score-nums">
                   {formatDate(tournament.createdAt)}
                 </span>
@@ -147,6 +147,29 @@ function RecentTournaments({
         </div>
       )}
     </section>
+  );
+}
+
+function StatusBadge({
+  status,
+}: {
+  status: RecentMatch["status"] | RecentTournament["status"];
+}) {
+  const styles = {
+    active: "border-emerald-300/40 bg-emerald-300/10 text-emerald-200",
+    complete: "border-sky-300/40 bg-sky-300/10 text-sky-200",
+    abandoned: "border-zinc-500/40 bg-zinc-500/10 text-zinc-300",
+  }[status];
+
+  return (
+    <span
+      className={[
+        "rounded-md border px-2 py-1 text-xs font-black uppercase tracking-[0.14em]",
+        styles,
+      ].join(" ")}
+    >
+      {status}
+    </span>
   );
 }
 

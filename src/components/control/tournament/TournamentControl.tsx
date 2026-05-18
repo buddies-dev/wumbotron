@@ -184,6 +184,29 @@ export function TournamentControl({ initialData }: TournamentControlProps) {
     }));
   }
 
+  async function activateTournament() {
+    if (!supabase) {
+      setMessage("Supabase environment variables are required.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("tournament")
+      .update({ status: "active" })
+      .eq("id", data.tournament.id);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage(null);
+    setData((current) => ({
+      ...current,
+      tournament: { ...current.tournament, status: "active" },
+    }));
+  }
+
   async function updateAccentColor(accentColor: string) {
     if (!supabase) {
       setMessage("Supabase environment variables are required.");
@@ -232,14 +255,24 @@ export function TournamentControl({ initialData }: TournamentControlProps) {
                 aria-label="Tournament accent color"
               />
             </label>
-            <button
-              type="button"
-              onClick={abandonTournament}
-              disabled={data.tournament.status !== "active"}
-              className="min-h-11 rounded-md border border-red-400/40 px-4 text-sm font-semibold text-red-200 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Abandon
-            </button>
+            {data.tournament.status === "abandoned" ? (
+              <button
+                type="button"
+                onClick={activateTournament}
+                className="min-h-11 rounded-md border border-emerald-300/50 px-4 text-sm font-semibold text-emerald-200"
+              >
+                Restore
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={abandonTournament}
+                disabled={data.tournament.status !== "active"}
+                className="min-h-11 rounded-md border border-red-400/40 px-4 text-sm font-semibold text-red-200 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Abandon
+              </button>
+            )}
           </div>
         </div>
       </header>
