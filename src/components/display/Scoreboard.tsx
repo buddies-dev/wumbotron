@@ -25,7 +25,7 @@ const PHASE_LABELS: Record<DerivedMatchState["currentPhase"], string> = {
 };
 
 const HEADSHOT_PLACEHOLDER_SRC =
-  "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original";
+  "/player-placeholder.png";
 
 export function Scoreboard({
   match,
@@ -123,7 +123,7 @@ export function Scoreboard({
         <ConnectionDot status={connectionStatus} />
       </header>
 
-      <section className="grid min-h-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-[3vw] py-[4vmin]">
+      <section className="grid min-h-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-[3vw] py-[2vmin]">
         <PlayerPanel
           align="left"
           name={match.player1_name}
@@ -244,14 +244,7 @@ function PlayerPanel({
     >
       <HeadshotSlot name={name} isUpNext={isUpNext} align={align} />
       <div className="mt-[2vmin] min-w-0">
-        <FitText
-          className="h-[6vmin] font-black"
-          minFontSize={18}
-          maxFontSize={64}
-        >
-          {name}
-        </FitText>
-        <div className="score-nums mt-[1vmin] text-[clamp(7rem,15vw,20rem)] font-black leading-[0.8]">
+        <div className="score-nums text-[clamp(4rem,8vw,12rem)] font-black leading-[0.8]">
           <span key={score} className="score-pop">
             {score}
           </span>
@@ -283,7 +276,7 @@ function HeadshotSlot({
   return (
     <div
       className={[
-        "relative aspect-[4/5] w-[min(26vw,44vmin)] max-w-full overflow-hidden rounded-md border bg-zinc-100",
+        "relative h-[min(32vw,52vmin)] w-[min(25.6vw,41.6vmin)] overflow-hidden rounded-md border bg-zinc-100",
         isRight ? "self-end" : "self-start",
         isUpNext
           ? "border-sky-300/80 shadow-[0_0_3.5rem_rgba(125,211,252,0.34)]"
@@ -295,10 +288,23 @@ function HeadshotSlot({
         src={HEADSHOT_PLACEHOLDER_SRC}
         alt={`${name} headshot placeholder`}
         fill
-        priority
-        sizes="(max-width: 900px) 38vw, 26vw"
+        loading="eager"
+        fetchPriority="high"
+        sizes="(max-width: 900px) 38vw, 60vmin"
         className="object-cover"
       />
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-[1.5vmin] py-[1.2vmin]">
+        <FitText
+          className={[
+            "h-[5vmin] w-full font-black text-white",
+            isRight ? "text-right" : "text-left",
+          ].join(" ")}
+          minFontSize={16}
+          maxFontSize={56}
+        >
+          {name}
+        </FitText>
+      </div>
     </div>
   );
 }
