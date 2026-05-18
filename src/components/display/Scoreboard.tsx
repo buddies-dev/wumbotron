@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ConnectionDot } from "./ConnectionDot";
 import type { ConnectionStatus } from "./ConnectionDot";
@@ -22,6 +23,9 @@ const PHASE_LABELS: Record<DerivedMatchState["currentPhase"], string> = {
   overtime: "overtime",
   sudden_death: "sudden death",
 };
+
+const HEADSHOT_PLACEHOLDER_SRC =
+  "https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original";
 
 export function Scoreboard({
   match,
@@ -230,7 +234,7 @@ function PlayerPanel({
   return (
     <article
       className={[
-        "relative min-w-0 border-white/10 py-[2vmin]",
+        "relative flex min-w-0 flex-col border-white/10 py-[2vmin]",
         isRight ? "text-right" : "text-left",
         isUpNext
           ? "border-sky-300/70 text-white"
@@ -238,27 +242,64 @@ function PlayerPanel({
         isRight ? "border-r-[0.8vmin] pr-[2vw]" : "border-l-[0.8vmin] pl-[2vw]",
       ].join(" ")}
     >
-      <FitText
-        className="h-[11vmin] font-black"
-        minFontSize={24}
-        maxFontSize={120}
-      >
-        {name}
-      </FitText>
-      <div className="score-nums mt-[2vmin] text-[clamp(9rem,20vw,26rem)] font-black leading-[0.8]">
-        <span key={score} className="score-pop">
-          {score}
-        </span>
-      </div>
-      <div
-        className={[
-          "mt-[2vmin] text-display-label font-semibold uppercase",
-          isUpNext ? "text-sky-300" : "text-transparent",
-        ].join(" ")}
-      >
-        Up next
+      <HeadshotSlot name={name} isUpNext={isUpNext} align={align} />
+      <div className="mt-[2vmin] min-w-0">
+        <FitText
+          className="h-[6vmin] font-black"
+          minFontSize={18}
+          maxFontSize={64}
+        >
+          {name}
+        </FitText>
+        <div className="score-nums mt-[1vmin] text-[clamp(7rem,15vw,20rem)] font-black leading-[0.8]">
+          <span key={score} className="score-pop">
+            {score}
+          </span>
+        </div>
+        <div
+          className={[
+            "mt-[2vmin] text-display-label font-semibold uppercase",
+            isUpNext ? "text-sky-300" : "text-transparent",
+          ].join(" ")}
+        >
+          Up next
+        </div>
       </div>
     </article>
+  );
+}
+
+function HeadshotSlot({
+  name,
+  isUpNext,
+  align,
+}: {
+  name: string;
+  isUpNext: boolean;
+  align: "left" | "right";
+}) {
+  const isRight = align === "right";
+
+  return (
+    <div
+      className={[
+        "relative aspect-[4/5] w-[min(26vw,44vmin)] max-w-full overflow-hidden rounded-md border bg-zinc-100",
+        isRight ? "self-end" : "self-start",
+        isUpNext
+          ? "border-sky-300/80 shadow-[0_0_3.5rem_rgba(125,211,252,0.34)]"
+          : "border-white/15",
+      ].join(" ")}
+      aria-label={`${name} headshot`}
+    >
+      <Image
+        src={HEADSHOT_PLACEHOLDER_SRC}
+        alt={`${name} headshot placeholder`}
+        fill
+        priority
+        sizes="(max-width: 900px) 38vw, 26vw"
+        className="object-cover"
+      />
+    </div>
   );
 }
 
