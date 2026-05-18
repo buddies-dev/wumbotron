@@ -37,6 +37,8 @@ export type DisplayBracketMatch = {
   player1_id: string | null;
   player2_id: string | null;
   match_id: string | null;
+  next_bracket_match_id: string | null;
+  next_slot: 1 | 2 | null;
   winner_player_id: string | null;
   match: DisplayMatch | null;
   innings: DisplayInning[];
@@ -59,8 +61,12 @@ export type DisplayTournamentData = {
 export async function loadDisplayTournament(
   tournamentId: string,
 ): Promise<DisplayTournamentData | null> {
+  if (demoTournament.tournament.id === tournamentId) {
+    return demoTournament;
+  }
+
   if (!hasSupabaseEnv()) {
-    return demoTournament.tournament.id === tournamentId ? demoTournament : null;
+    return null;
   }
 
   const supabase = await createClient();
@@ -213,6 +219,8 @@ function shapeTournament({
       player1_id: bracketMatch.player1_id,
       player2_id: bracketMatch.player2_id,
       match_id: bracketMatch.match_id,
+      next_bracket_match_id: bracketMatch.next_bracket_match_id,
+      next_slot: bracketMatch.next_slot,
       winner_player_id: bracketMatch.winner_player_id,
       match: displayMatch,
       innings: matchInnings.map(normalizeInning),
